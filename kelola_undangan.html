@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator Link Undangan</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #B4975A; /* Gold */
+            --dark: #333;
+            --light: #FDFBF7;
+            --white: #fff;
+        }
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: var(--light);
+            color: var(--dark);
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: var(--white);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            border-top: 5px solid var(--primary);
+        }
+        h1 { color: var(--primary); text-align: center; margin-bottom: 20px; }
+        label { font-weight: 600; display: block; margin-bottom: 5px; margin-top: 15px;}
+        
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: inherit;
+        }
+        
+        .hint { font-size: 0.8rem; color: #888; margin-bottom: 5px; }
+
+        button#generate-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px;
+            width: 100%;
+            font-size: 1rem;
+            font-weight: bold;
+            margin-top: 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button#generate-btn:hover { background: #8C7335; }
+
+        /* Hasil Generator */
+        #result-area { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
+        
+        .guest-card {
+            background: #fafafa;
+            border: 1px solid #eee;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .guest-name { font-weight: bold; color: var(--primary); font-size: 1.1rem; }
+        .guest-link { font-size: 0.8rem; color: #666; word-break: break-all; background: #eee; padding: 5px; border-radius: 4px;}
+
+        .action-buttons { display: flex; gap: 10px; margin-top: 5px; }
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        .btn-copy { background: #333; color: white; }
+        .btn-wa { background: #25D366; color: white; }
+        .btn:hover { opacity: 0.9; }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1><i class="fas fa-cogs"></i> Kelola Undangan</h1>
+        
+        <label>Link Website Anda</label>
+        <p class="hint">Copy link website Anda dari browser (contoh: domainanda.com/index.html)</p>
+        <input type="text" id="base-url" placeholder="https://..." value="http://127.0.0.1:5500/index.html">
+
+        <label>Template Pesan WhatsApp</label>
+        <textarea id="msg-template" rows="4">Kepada Yth. *[NAMA]*,
+
+Tanpa mengurangi rasa hormat, turut mengundang Bapak/Ibu/Saudara/i untuk hadir di acara pernikahan kami.
+
+Info lengkap klik link berikut:
+[LINK]
+
+Mohon doa restunya.
+Romeo & Juliet</textarea>
+
+        <label>Daftar Nama Tamu</label>
+        <p class="hint">Satu baris untuk satu nama (Enter untuk nama baru)</p>
+        <textarea id="guest-list" rows="6" placeholder="Budi Santoso&#10;Siti Aminah&#10;Pak RT&#10;Keluarga Besar H. Mamat"></textarea>
+
+        <button id="generate-btn" onclick="generateLinks()">BUAT LINK & PESAN</button>
+
+        <div id="result-area"></div>
+    </div>
+
+    <script>
+        function generateLinks() {
+            const baseUrlRaw = document.getElementById('base-url').value.trim();
+            const template = document.getElementById('msg-template').value;
+            const guestsRaw = document.getElementById('guest-list').value;
+            const resultArea = document.getElementById('result-area');
+
+            // Validasi sederhana
+            if (!baseUrlRaw) { alert("Masukkan Link Website dulu!"); return; }
+            if (!guestsRaw) { alert("Masukkan nama tamu dulu!"); return; }
+
+            // Bersihkan Result
+            resultArea.innerHTML = "<h3>Daftar Link Siap Kirim (" + guestsRaw.split('\n').filter(n=>n.trim()).length + ")</h3>";
+
+            // Proses per baris
+            const guests = guestsRaw.split('\n');
+
+            guests.forEach(guest => {
+                const name = guest.trim();
+                if (name) {
+                    // 1. Buat Link Undangan (Encode agar spasi jadi %20 aman di URL)
+                    // Cek apakah base url sudah ada ? atau belum
+                    const separator = baseUrlRaw.includes('?') ? '&' : '?';
+                    const finalLink = `${baseUrlRaw}${separator}to=${encodeURIComponent(name)}`;
+
+                    // 2. Buat Pesan WA
+                    let waMessage = template.replace('[NAMA]', name).replace('[LINK]', finalLink);
+                    let waUrl = `https://wa.me/?text=${encodeURIComponent(waMessage)}`;
+
+                    // 3. Render HTML Card
+                    const card = document.createElement('div');
+                    card.className = 'guest-card';
+                    card.innerHTML = `
+                        <div class="guest-name">${name}</div>
+                        <div class="guest-link">${finalLink}</div>
+                        <div class="action-buttons">
+                            <button class="btn btn-copy" onclick="copyText('${finalLink}')">
+                                <i class="fas fa-copy"></i> Copy Link
+                            </button>
+                            <a href="${waUrl}" target="_blank" class="btn btn-wa">
+                                <i class="fab fa-whatsapp"></i> Kirim WA
+                            </a>
+                        </div>
+                    `;
+                    resultArea.appendChild(card);
+                }
+            });
+        }
+
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert("Link berhasil disalin!");
+            });
+        }
+    </script>
+</body>
+</html>
